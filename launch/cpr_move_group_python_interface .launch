@@ -1,0 +1,23 @@
+<launch>
+<!-- By default, we are not in debug mode -->
+  <arg name="debug" default="false" />
+
+<!-- We need to add some sort of thing here to launch the mover4 rviz? potentially -->
+  <!-- <include file="$(find pr2_moveit_config)/launch/demo.launch"/> -->
+
+    <!-- Load the URDF, SRDF and other .yaml configuration files on the param server -->
+  <include file="$(find mover4_moveit_config)/launch/planning_context.launch">
+    <arg name="load_robot_description" value="true"/>
+  </include>
+
+  <include file="$(find mover4_moveit_config)/launch/move_group.launch">
+    <arg name="allow_trajectory_execution" value="true"/>
+    <arg name="fake_execution" value="false"/>
+    <arg name="info" value="true"/>
+    <arg name="debug" value="$(arg debug)"/>
+  </include>
+
+  <node name="cpr_move_group_python_interface" pkg="planning" type="cpr_move_group_python_interface.py" respawn="false" output="screen">
+  </node>
+
+</launch>
