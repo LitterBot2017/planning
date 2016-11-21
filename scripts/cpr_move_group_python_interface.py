@@ -39,6 +39,7 @@
 ## To use the python interface to move_group, import the moveit_commander
 ## module.  We also import rospy and some messages that we will use.
 import sys
+import string
 import copy
 import rospy
 import moveit_commander
@@ -52,7 +53,7 @@ from std_msgs.msg import String
 
 def cpr_move_group_python_interface():
   ## First initialize moveit_commander and rospy.
-  rospy.sleep(5)
+  rospy.sleep(1)
   print "============ Starting tutorial setup"
   moveit_commander.roscpp_initialize(sys.argv)
   rospy.init_node('cpr_move_group_python_interface',
@@ -75,119 +76,126 @@ def cpr_move_group_python_interface():
 
   #################################Initialize connection to robot arm
   commands_publisher_ = rospy.Publisher("CPRMoverCommands", String, queue_size = 1);
-  rospy.sleep(1)
-  msgCommands = String();
-  msgCommands.data = "Connect";
-  commands_publisher_.publish(msgCommands);
-  rospy.sleep(1)
-  msgCommands.data = "Reset";
-  commands_publisher_.publish(msgCommands);
-  rospy.sleep(1)
-  msgCommands.data = "Enable";
-  commands_publisher_.publish(msgCommands);
-  rospy.sleep(1)
 
-  ## Getting Basic Information
-  ## ^^^^^^^^^^^^^^^^^^^^^^^^^
-  ##
-  ## We can get the name of the reference frame for this robot
-  print "============ Reference frame: %s" % group.get_planning_frame()
+  try:
+    while True:
+      input_string = raw_input('Please enter the desired joint angles (in degrees) to move to deliminated by spaces-->')
+      angles = string.split(input_string,' ')
+      if len(angles) < 4:
+        print 'INVALID NUMBER OF ANGLES, WE HAVE 4 JOINTS!'
+        continue
+      rospy.sleep(1)
+      msgCommands = String();
+      msgCommands.data = "Connect";
+      commands_publisher_.publish(msgCommands);
+      rospy.sleep(1)
+      msgCommands.data = "Reset";
+      commands_publisher_.publish(msgCommands);
+      rospy.sleep(1)
+      msgCommands.data = "Enable";
+      commands_publisher_.publish(msgCommands);
+      rospy.sleep(1)
 
-  ## We can also print the name of the end-effector link for this group
-  print "============ Reference frame: %s" % group.get_end_effector_link()
+      ## Getting Basic Information
+      ## ^^^^^^^^^^^^^^^^^^^^^^^^^
+      ##
+      ## We can get the name of the reference frame for this robot
+      print "============ Reference frame: %s" % group.get_planning_frame()
 
-  ## We can get a list of all the groups in the robot
-  print "============ Robot Groups:"
-  print robot.get_group_names()
+      ## We can also print the name of the end-effector link for this group
+      print "============ Reference frame: %s" % group.get_end_effector_link()
 
-  ## Sometimes for debugging it is useful to print the entire state of the
-  ## robot.
-  print "============ Printing robot state"
-  print robot.get_current_state()
-  print "============"
+      ## We can get a list of all the groups in the robot
+      print "============ Robot Groups:"
+      print robot.get_group_names()
 
-  ## Planning to a Pose goal
-  ## ^^^^^^^^^^^^^^^^^^^^^^^
-  ## We can plan a motion for this group to a desired pose for the 
-  ## end-effector
-  print "============ Generating plan 1"
-  pose_target = geometry_msgs.msg.Pose()
-  # pose_target.orientation.w = 1.0
-  # pose_target.position.x = 0.7
-  # pose_target.position.y = -0.05
-  # pose_target.position.z = 1.1
-  # pose_target.orientation.w = 1.0
-  # pose_target.position.x = 0.30
-  # pose_target.position.y = -0.00
-  # pose_target.position.z = 0.30
-  # group.set_goal_orientation_tolerance(1.5)
-  # print group.get_goal_orientation_tolerance()
-  # print group.get_goal_position_tolerance()
-  # print group.get_goal_tolerance()
-  # print group.get_goal_joint_tolerance()
-  print pose_target
-  group.set_pose_target(pose_target)
+      ## Sometimes for debugging it is useful to print the entire state of the
+      ## robot.
+      print "============ Printing robot state"
+      print robot.get_current_state()
+      print "============"
 
-  ## Now, we call the planner to compute the plan
-  ## and visualize it if successful
-  ## Note that we are just planning, not asking move_group 
-  ## to actually move the robot
-  # plan1 = group.plan()
+      ## Planning to a Pose goal
+      ## ^^^^^^^^^^^^^^^^^^^^^^^
+      ## We can plan a motion for this group to a desired pose for the 
+      ## end-effector
+      # print "============ Generating plan 1"
+      # pose_target = geometry_msgs.msg.Pose()
+      # pose_target.orientation.w = 1.0
+      # pose_target.position.x = 0.7
+      # pose_target.position.y = -0.05
+      # pose_target.position.z = 1.1
+      # pose_target.orientation.w = 1.0
+      # pose_target.position.x = 0.30
+      # pose_target.position.y = -0.00
+      # pose_target.position.z = 0.30
+      # group.set_goal_orientation_tolerance(1.5)
+      # print group.get_goal_orientation_tolerance()
+      # print group.get_goal_position_tolerance()
+      # print group.get_goal_tolerance()
+      # print group.get_goal_joint_tolerance()
+      # print pose_target
+      # group.set_pose_target(pose_target)
 
-  # print plan1
+      ## Now, we call the planner to compute the plan
+      ## and visualize it if successful
+      ## Note that we are just planning, not asking move_group 
+      ## to actually move the robot
+      # plan1 = group.plan()
 
-  ## Moving to a pose goal
-  ## ^^^^^^^^^^^^^^^^^^^^^
-  ##
-  ## Moving to a pose goal is similar to the step above
-  ## except we now use the go() function. Note that
-  ## the pose goal we had set earlier is still active 
-  ## and so the robot will try to move to that goal. We will
-  ## not use that function in this tutorial since it is 
-  ## a blocking function and requires a controller to be active
-  ## and report success on execution of a trajectory.
+      # print plan1
 
-  # Uncomment below line when working with a real robot
-  # group.go(wait=True)
+      ## Moving to a pose goal
+      ## ^^^^^^^^^^^^^^^^^^^^^
+      ##
+      ## Moving to a pose goal is similar to the step above
+      ## except we now use the go() function. Note that
+      ## the pose goal we had set earlier is still active 
+      ## and so the robot will try to move to that goal. We will
+      ## not use that function in this tutorial since it is 
+      ## a blocking function and requires a controller to be active
+      ## and report success on execution of a trajectory.
 
-  ## Planning to a joint-space goal 
-  ## ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  ##
-  ## Let's set a joint space goal and move towards it. 
-  ## First, we will clear the pose target we had just set.
+      # Uncomment below line when working with a real robot
+      # group.go(wait=True)
 
-  group.clear_pose_targets()
+      ## Planning to a joint-space goal 
+      ## ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      ##
+      ## Let's set a joint space goal and move towards it. 
+      ## First, we will clear the pose target we had just set.
 
-  ## Then, we will get the current set of joint values for the group
-  group_variable_values = group.get_current_joint_values()
-  print "============ Joint values: ", group_variable_values
+      group.clear_pose_targets()
 
-  ## Now, let's modify one of the joints, plan to the new joint
-  ## space goal and visualize the plan
-  # group_variable_values[0] = math.pi/4
-  # group_variable_values[1] = math.pi/4
-  # group_variable_values[2] = math.pi/4
-  # group_variable_values[3] = math.pi/4
-  group_variable_values[0] = 0
-  group_variable_values[1] = 0
-  group_variable_values[2] = 0
-  group_variable_values[3] = 0
-  group.set_joint_value_target(group_variable_values)
+      ## Then, we will get the current set of joint values for the group
+      group_variable_values = group.get_current_joint_values()
+      print "============ Joint values: ", group_variable_values
 
-  plan2 = group.plan()
+      ## Now, let's modify one of the joints, plan to the new joint
+      ## space goal and visualize the plan
+      group_variable_values[0] = float(angles[0])*(math.pi/180)
+      group_variable_values[1] = float(angles[1])*(math.pi/180)
+      group_variable_values[2] = float(angles[2])*(math.pi/180)
+      group_variable_values[3] = float(angles[3])*(math.pi/180)
+      group.set_joint_value_target(group_variable_values)
 
-  print plan2
+      plan2 = group.plan()
+
+      print plan2
+
+      group.go(wait=True)
+
+      print "============ Waiting while RVIZ displays plan2..."
+      # rospy.sleep(5)
 
 
-  group.go(wait=True)
+  except KeyboardInterrupt:
+    print "Exiting through keyboard"
+    ## When finished shut down moveit_commander.
+    moveit_commander.roscpp_shutdown()
 
-  print "============ Waiting while RVIZ displays plan2..."
-  # rospy.sleep(5)
+    print "============ STOPPING"
 
-  ## When finished shut down moveit_commander.
-  moveit_commander.roscpp_shutdown()
-
-  print "============ STOPPING"
 
 
 if __name__=='__main__':
