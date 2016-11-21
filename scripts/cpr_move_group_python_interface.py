@@ -51,6 +51,21 @@ import math
 
 from std_msgs.msg import String
 
+def toQuaternion(pitch, roll, yaw):
+  pose_target = geometry_msgs.msg.Pose()
+  t0 = math.cos(yaw * 0.5)
+  t1 = math.sin(yaw * 0.5)
+  t2 = math.cos(roll * 0.5)
+  t3 = math.sin(roll * 0.5)
+  t4 = math.cos(pitch * 0.5)
+  t5 = math.sin(pitch * 0.5)
+
+  pose_target.orientation.w = t0 * t2 * t4 + t1 * t3 * t5
+  pose_target.orientation.x = t0 * t3 * t4 - t1 * t2 * t5
+  pose_target.orientation.y = t0 * t2 * t5 + t1 * t3 * t4
+  pose_target.orientation.z = t1 * t2 * t4 - t0 * t3 * t5
+  return pose_target
+
 def cpr_move_group_python_interface():
   ## First initialize moveit_commander and rospy.
   rospy.sleep(1)
