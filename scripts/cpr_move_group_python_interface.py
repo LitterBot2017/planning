@@ -87,7 +87,10 @@ def cpr_move_group_python_interface():
   ## arm.  This interface can be used to plan and execute motions on the left
   ## arm.
   group = moveit_commander.MoveGroupCommander("robot")
-  group.set_planner_id("RRTkConfigDefault")
+  # group.set_planner_id("RRTkConfigDefault")
+  # group.set_planner_id("PRMstarkConfigDefault")
+  # group.set_planner_id("RRTstarkConfigDefault")
+  group.set_planner_id("ESTkConfigDefault")
 
   #################################Initialize connection to robot arm
   commands_publisher_ = rospy.Publisher("CPRMoverCommands", String, queue_size = 1);
@@ -130,6 +133,10 @@ def cpr_move_group_python_interface():
       print robot.get_current_state()
       print "============"
 
+      # group.clear_pose_targets()
+
+      ###############NOTE!!!: EST WITH Pose at w=1.0, x=0.2, y=0.0, and z=0.3 works!
+
       ## Planning to a Pose goal
       ## ^^^^^^^^^^^^^^^^^^^^^^^
       ## We can plan a motion for this group to a desired pose for the 
@@ -144,6 +151,13 @@ def cpr_move_group_python_interface():
       # pose_target.position.x = 0.30
       # pose_target.position.y = -0.00
       # pose_target.position.z = 0.30
+      # pose_target.orientation.w = 1.0
+      # pose_target.orientation.x = 0.0
+      # pose_target.orientation.y = 0.0
+      # pose_target.orientation.z = 0.0
+      # pose_target.position.x = float(angles[0])
+      # pose_target.position.y = float(angles[1])
+      # pose_target.position.z = float(angles[2])
       # group.set_goal_orientation_tolerance(1.5)
       # print group.get_goal_orientation_tolerance()
       # print group.get_goal_position_tolerance()
@@ -151,6 +165,28 @@ def cpr_move_group_python_interface():
       # print group.get_goal_joint_tolerance()
       # print pose_target
       # group.set_pose_target(pose_target)
+
+      ## Here is just a position planning
+      # print "============ Generating plan 1.5"
+      # position_target = geometry_msgs.msg.Point()
+      # position_target.orientation.w = 1.0
+      # position_target.position.x = 0.7
+      # position_target.position.y = -0.05
+      # position_target.position.z = 1.1
+      # position_target.orientation.w = 1.0
+      # position_target.position.x = 0.30
+      # position_target.position.y = -0.00
+      # position_target.position.z = 0.30
+      # position_target = [0.2, 0, 0.2]
+      # position_target = [float(angles[0]), float(angles[1]), float(angles[2])]
+      # group.set_goal_orientation_tolerance(1.5)
+      # print group.get_goal_orientation_tolerance()
+      # print group.get_goal_position_tolerance()
+      # print group.get_goal_tolerance()
+      # print group.get_goal_joint_tolerance()
+      # print position_target
+      # group.set_position_target(position_target)
+
 
       ## Now, we call the planner to compute the plan
       ## and visualize it if successful
@@ -198,9 +234,9 @@ def cpr_move_group_python_interface():
 
       print plan2
 
-      group.go(wait=True)
+      # group.go(wait=True)
 
-      print "============ Waiting while RVIZ displays plan2..."
+      # print "============ Waiting while RVIZ displays plan2..."
       # rospy.sleep(5)
 
 
