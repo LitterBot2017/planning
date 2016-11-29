@@ -66,6 +66,40 @@ def toQuaternion(pitch, roll, yaw):
   pose_target.orientation.z = t1 * t2 * t4 - t0 * t3 * t5
   return pose_target
 
+def calc_ik(x,y,z):
+  #lengths of links
+  l_1 = 206.0
+  l_2 = 190.0
+  l_3 = 220.0
+  l_4 = 45.0
+
+  joint_vals = [0.0] * 4
+
+  if (x == 0.0) and (y == 0.0) and (z == 0.0):
+    return joint_vals
+
+  # position of the "wrist"
+  z_prime = z+45.0
+
+  # distance from the top of the end of the "waist" joint
+  dd = math.sqrt(math.pow(x,2) + math.pow(y,2) + math.pow((z_prime-l_1),2))
+
+  # phi is the angle from normal to the position of the wrist
+  phi = math.asin((z_prime-l_1)/dd)
+
+  #angle about joint 2 to the line from the top of the "waist" to the "wrist"
+  C_1 = math.acos((math.pow(l_3,2)-math.pow(dd,2)-math.pow(l_2,2))/(-2.0*dd*l_2))
+
+  #angle about joint 3 between links 2 and 3
+  C_2 = math.acos((math.pow(dd,2)-math.pow(l_3,2)-math.pow(l_2,2))/(-2.0*l_3*l_2))
+
+  joint_vals[0] = math.atan2(y,x)
+  joint_vals[1] = math.radians(90.0)-phi-C_1
+  joint_vals[2] = math.radians(180.0)-C_2
+  joint_vals[3] = math.radians(180.0)-(math.radians(180.0)-C_1-C_2)-(math.radians(180.0)-math.radians(90.0)-phi)
+
+  return joint_vals
+
 def cpr_move_group_python_interface():
   ## First initialize moveit_commander and rospy.
   rospy.sleep(1)
@@ -97,11 +131,26 @@ def cpr_move_group_python_interface():
 
   try:
     while True:
-      input_string = raw_input('Please enter the desired joint angles (in degrees) to move to deliminated by spaces-->')
-      angles = string.split(input_string,' ')
-      if len(angles) < 4:
-        print 'INVALID NUMBER OF ANGLES, WE HAVE 4 JOINTS!'
+      # input_string = raw_input('Please enter the desired joint angles (in degrees) to move to deliminated by spaces-->')
+      # angles = string.split(input_string,' ')
+      # if len(angles) < 4:
+      #   print 'INVALID NUMBER OF ANGLES, WE HAVE 4 JOINTS!'
+      #   continue
+      input_string = raw_input('Please enter the desired end effector position (in cm) to move to deliminated by spaces (type 0 0 0 to return to home) -->')
+      xyz_vals = string.split(input_string,' ')
+      if len(xyz_vals) < 3:
+        print 'TOO FEW NUMBERS FOR COORDINATES IN 3D!!'
         continue
+      joint_vals = calc_ik(float(xyz_vals[0])*10.0, float(xyz_vals[1])*10.0, float(xyz_vals[2])*10.0)
+      print "The following are the calculated values for the joint values"
+      joint_vals_degrees = [0.0]*4
+      joint_vals_degrees[0] = math.degrees(joint_vals[0])
+      joint_vals_degrees[1] = math.degrees(joint_vals[1])
+      joint_vals_degrees[2] = math.degrees(joint_vals[2])
+      joint_vals_degrees[3] = math.degrees(joint_vals[3])
+      # print joint_vals_degrees
+      print repr(joint_vals_degrees[0]) + ' ' + repr(joint_vals_degrees[1]) + ' ' + repr(joint_vals_degrees[2]) + ' ' + repr(joint_vals_degrees[3])
+      input_string = raw_input('hit ENTER to continue')
       rospy.sleep(1)
       msgCommands = String();
       msgCommands.data = "Connect";
@@ -224,10 +273,14 @@ def cpr_move_group_python_interface():
 
       ## Now, let's modify one of the joints, plan to the new joint
       ## space goal and visualize the plan
-      group_variable_values[0] = float(angles[0])*(math.pi/180)
-      group_variable_values[1] = float(angles[1])*(math.pi/180)
-      group_variable_values[2] = float(angles[2])*(math.pi/180)
-      group_variable_values[3] = float(angles[3])*(math.pi/180)
+      # group_variable_values[0] = float(angles[0])*(math.pi/180)
+      # group_variable_values[1] = float(angles[1])*(math.pi/180)
+      # group_variable_values[2] = float(angles[2])*(math.pi/180)
+      # group_variable_values[3] = float(angles[3])*(math.pi/180)
+      group_variable_values[0] = float(joint_vals[0])
+      group_variable_values[1] = float(joint_vals[1])
+      group_variable_values[2] = float(joint_vals[2])
+      group_variable_values[3] = float(joint_vals[3])
       group.set_joint_value_target(group_variable_values)
 
       plan2 = group.plan()
