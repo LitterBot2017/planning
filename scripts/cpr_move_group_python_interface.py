@@ -234,10 +234,10 @@ def cpr_move_group_python_interface():
 
       print plan2
 
-      # group.go(wait=True)
+      group.go(wait=True)
 
       # print "============ Waiting while RVIZ displays plan2..."
-      # rospy.sleep(5)
+      rospy.sleep(5)
 
 
   except KeyboardInterrupt:

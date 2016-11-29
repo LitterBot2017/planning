@@ -45,4 +45,5 @@ if __name__=='__main__':
 		joint_vals_degrees[1] = math.degrees(joint_vals[1])
 		joint_vals_degrees[2] = math.degrees(joint_vals[2])
 		joint_vals_degrees[3] = math.degrees(joint_vals[3])
-		print joint_vals_degrees
+		# print joint_vals_degrees
+		print repr(joint_vals_degrees[0]) + ' ' + repr(joint_vals_degrees[1]) + ' ' + repr(joint_vals_degrees[2]) + ' ' + repr(joint_vals_degrees[3])
