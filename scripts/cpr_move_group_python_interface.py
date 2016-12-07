@@ -97,6 +97,8 @@ def calc_ik(x,y,z):
   joint_vals[1] = math.radians(90.0)-phi-C_1
   joint_vals[2] = math.radians(180.0)-C_2
   joint_vals[3] = math.radians(180.0)-(math.radians(180.0)-C_1-C_2)-(math.radians(180.0)-math.radians(90.0)-phi)
+  if joint_vals[1] > 85:
+    raise UserWarning('Joints may be out of bounds')
 
   return joint_vals
 
@@ -141,7 +143,11 @@ def cpr_move_group_python_interface():
       if len(xyz_vals) < 3:
         print 'TOO FEW NUMBERS FOR COORDINATES IN 3D!!'
         continue
-      joint_vals = calc_ik(float(xyz_vals[0])*10.0, float(xyz_vals[1])*10.0, float(xyz_vals[2])*10.0)
+      try:
+        joint_vals = calc_ik(float(xyz_vals[0])*10.0, float(xyz_vals[1])*10.0, float(xyz_vals[2])*10.0)
+      except:
+        print 'INVERSE KINEMATICS FAILED!!!'
+        continue
       print "The following are the calculated values for the joint values"
       joint_vals_degrees = [0.0]*4
       joint_vals_degrees[0] = math.degrees(joint_vals[0])
