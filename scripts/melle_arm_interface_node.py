@@ -144,9 +144,25 @@ class Melle_Arm(object):
         else:
             return False
 
-    # x y z are all in CM's
-    def pick_up_litter(self,x,y,z):
+    def homography(self,x,y):
+        h_mat = np.array([[2.20112274361411e-05   -0.00104907565122149    0.716837052934665],
+                [0.00106749217814106 2.52155668263140e-05    -0.697069869544055],
+                -1.14045687493388e-07   3.65086924461742e-07    0.0153621383290128]])
 
+        point = np.array([[x],[y],[1]])
+
+        q = np.dot(h_mat,point)
+        real_x = q(1)/q(3)
+        real_y = q(2)/q(3)
+
+        return real_x, real_y
+
+    # x y z are all in CM's
+    def pick_up_litter(self):
+        # end effector is ~3inches + base2ground is 4.65in
+        # soda can is about 2.13 inches across        
+        x,y = homography(self.po.x,self.po.y)
+        z = (3+4.65-2.13)*2.54
         #run through the steps twice because the arm will return to home after the pick up
         for i in range(1,2):
             if i == 0:
