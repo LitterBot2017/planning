@@ -54,6 +54,8 @@ import math
 
 from std_msgs.msg import String
 
+import numpy as np
+
 
 class Melle_Arm(object):
     """docstring for Melle_Arm"""
@@ -135,6 +137,8 @@ class Melle_Arm(object):
 
         return joint_vals
 
+        import numpy as np
+
     def down_cam_cb(self,data):
         self.po = data
 
@@ -145,35 +149,39 @@ class Melle_Arm(object):
             return False
 
     def homography(self,x,y):
-        h_mat = np.array([[2.20112274361411e-05   -0.00104907565122149    0.716837052934665],
-                [0.00106749217814106 2.52155668263140e-05    -0.697069869544055],
-                -1.14045687493388e-07   3.65086924461742e-07    0.0153621383290128]])
+        h_mat = np.array([[2.20112274361046e-05, -0.00104907565122139, 0.716837052934637], 
+                [-0.00106749217814114, -2.52155668261608e-05, 0.697069869544084], 
+                [-1.14045687505024e-07, 3.65086924495886e-07, 0.0153621383290117]])
 
         point = np.array([[x],[y],[1]])
 
         q = np.dot(h_mat,point)
-        real_x = q(1)/q(3)
-        real_y = q(2)/q(3)
+        real_x = q[0]/q[2]
+        real_y = q[1]/q[2]
 
-        return real_x, real_y
+        return float(real_x), float(real_y)
 
     # x y z are all in CM's
     def pick_up_litter(self):
+        feedback = String()
+        feedback = 'in_progress'
+        self.robot_state_publisher.publish(feedback)
         # end effector is ~3inches + base2ground is 4.65in
         # soda can is about 2.13 inches across        
-        x,y = homography(self.po.x,self.po.y)
-        z = (3+4.65-2.13)*2.54
+        x,y = self.homography(self.po.x,self.po.y)
+        z = (3-4.65+2.13+0.5)*2.54
         #run through the steps twice because the arm will return to home after the pick up
-        for i in range(1,2):
+        for i in range(2):
+            print 'part ' + repr(i)
             if i == 0:
                 # first calculate inverse kinmatics here
                 try:
-                    joint_vals = calc_ik(float(x)*10.0, float(y)*10.0, float(z)*10.0)
+                    joint_vals = self.calc_ik(float(x)*10.0, float(y)*10.0, float(z)*10.0)
                 except:
                     print 'INVERSE KINEMATICS FAILED!!!'
                     continue
             else:
-                joint_vals = calc_ik(0.0, 0.0, 0.0)
+                joint_vals = self.calc_ik(0.0, 0.0, 0.0)
 
             # print joint vals here to make sure they are valid
             print "The following are the calculated values for the joint values"
@@ -190,13 +198,13 @@ class Melle_Arm(object):
             rospy.sleep(1)
             msgCommands = String();
             msgCommands.data = "Connect";
-            commands_publisher_.publish(msgCommands);
+            self.commands_publisher_.publish(msgCommands);
             rospy.sleep(1)
             msgCommands.data = "Reset";
-            commands_publisher_.publish(msgCommands);
+            self.commands_publisher_.publish(msgCommands);
             rospy.sleep(1)
             msgCommands.data = "Enable";
-            commands_publisher_.publish(msgCommands);
+            self.commands_publisher_.publish(msgCommands);
             rospy.sleep(1)
 
             # This is from the tutorial code for generating the plans and executing them
@@ -204,19 +212,19 @@ class Melle_Arm(object):
             ## ^^^^^^^^^^^^^^^^^^^^^^^^^
             ##
             ## We can get the name of the reference frame for this robot
-            print "============ Reference frame: %s" % group.get_planning_frame()
+            print "============ Reference frame: %s" % self.group.get_planning_frame()
 
             ## We can also print the name of the end-effector link for this group
-            print "============ Reference frame: %s" % group.get_end_effector_link()
+            print "============ Reference frame: %s" % self.group.get_end_effector_link()
 
             ## We can get a list of all the groups in the robot
             print "============ Robot Groups:"
-            print robot.get_group_names()
+            print self.robot.get_group_names()
 
             ## Sometimes for debugging it is useful to print the entire state of the
             ## robot.
             print "============ Printing robot state"
-            print robot.get_current_state()
+            print self.robot.get_current_state()
             print "============"
 
             ## Planning to a joint-space goal 
@@ -225,10 +233,10 @@ class Melle_Arm(object):
             ## Let's set a joint space goal and move towards it. 
             ## First, we will clear the pose target we had just set. <---- I'm still doing this just to be safe
 
-            group.clear_pose_targets()
+            self.group.clear_pose_targets()
 
             ## Then, we will get the current set of joint values for the group
-            group_variable_values = group.get_current_joint_values()
+            group_variable_values = self.group.get_current_joint_values()
             print "============ Joint values: ", group_variable_values
 
             ## Now, let's modify one of the joints, plan to the new joint
@@ -237,18 +245,20 @@ class Melle_Arm(object):
             group_variable_values[1] = float(joint_vals[1])
             group_variable_values[2] = float(joint_vals[2])
             group_variable_values[3] = float(joint_vals[3])
-            group.set_joint_value_target(group_variable_values)
+            self.group.set_joint_value_target(group_variable_values)
 
-            plan2 = group.plan()
+            plan2 = self.group.plan()
 
             # print plan2
 
             # Actually Execute the command on the arm
-            group.go(wait=True)
+            self.group.go(wait=True)
 
             # print "============ Waiting while RVIZ displays plan2..." <- this is the old thing
             # not this sleep is simply to wait for the arm to execute the command before handing back to the CV system
-            rospy.sleep(30)
+            rospy.sleep(30.)
+        feedback = 'pickup_done'
+        self.robot_state_publisher.publish(feedback)
 
 
 if __name__=='__main__':
@@ -261,4 +271,5 @@ if __name__=='__main__':
         if Arm.pick_up_signal() is True:
             Arm.pick_up_litter()
         else:
+            print 'no cans'
             rate.sleep()
