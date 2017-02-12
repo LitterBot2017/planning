@@ -46,6 +46,9 @@ import moveit_commander
 import moveit_msgs.msg
 import geometry_msgs.msg
 
+#camera
+from downview_cam.msg import po 
+
 import math
 ## END_SUB_TUTORIAL
 
@@ -53,7 +56,7 @@ from std_msgs.msg import String
 
 
 class Melle_Arm(object):
-      """docstring for Melle_Arm"""
+    """docstring for Melle_Arm"""
     def __init__(self):
         ## First initialize moveit_commander and rospy.
         print "=============Starting Mell-e Arm Node============"
@@ -89,8 +92,8 @@ class Melle_Arm(object):
 
         #################################
         # TODO: get the litter stated, and also position of the piece of litter from the camera
-        # self.camera_subscriber = rospy.Subscriber("TODO", TODO, self.TODO)
-
+        self.camera_subscriber = rospy.Subscriber("down_cam_msg", po, self.down_cam_cb)
+        self.po = po()
 
     def calc_ik(self,x,y,z):
         #lengths of links
@@ -131,6 +134,15 @@ class Melle_Arm(object):
             joint_vals = [0.0] * 4
 
         return joint_vals
+
+    def down_cam_cb(self,data):
+        self.po = data
+
+    def pick_up_signal(self):
+        if self.po.command == 'centered':
+            return True
+        else:
+            return False
 
     # x y z are all in CM's
     def pick_up_litter(self,x,y,z):
