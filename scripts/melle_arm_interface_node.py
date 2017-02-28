@@ -97,6 +97,17 @@ class Melle_Arm(object):
         self.camera_subscriber = rospy.Subscriber("down_cam_msg", po, self.down_cam_cb)
         self.po = po()
 
+        self.pressure_subscriber = rospy.Subscriber("Seal_msg", String, self.seal_cb)
+        self.sealed = String()
+        self.sealed.data = "off"
+
+        ################################ Set arm state to be "done"
+        feedback = String()
+        feedback.data = 'pickup_done'
+        self.robot_state_publisher.publish(feedback)
+
+
+    # x y z are all in CM's
     def calc_ik(self,x,y,z):
         #lengths of links
         l_1 = 206.0
@@ -137,10 +148,12 @@ class Melle_Arm(object):
 
         return joint_vals
 
-        import numpy as np
 
     def down_cam_cb(self,data):
         self.po = data
+
+    def seal_cb(self,data):
+        self.sealed = data
 
     def pick_up_signal(self):
         if self.po.command == 'centered':
@@ -161,27 +174,14 @@ class Melle_Arm(object):
 
         return float(real_x), float(real_y)
 
-    # x y z are all in CM's
-    def pick_up_litter(self):
-        feedback = String()
-        feedback = 'in_progress'
-        self.robot_state_publisher.publish(feedback)
-        # end effector is ~3inches + base2ground is 4.65in
-        # soda can is about 2.13 inches across        
-        x,y = self.homography(self.po.x,self.po.y)
-        z = (3-4.65+2.13+0.5)*2.54
-        #run through the steps twice because the arm will return to home after the pick up
-        for i in range(2):
-            print 'part ' + repr(i)
-            if i == 0:
-                # first calculate inverse kinmatics here
-                try:
-                    joint_vals = self.calc_ik(float(x)*10.0, float(y)*10.0, float(z)*10.0)
-                except:
-                    print 'INVERSE KINEMATICS FAILED!!!'
-                    continue
-            else:
-                joint_vals = self.calc_ik(0.0, 0.0, 0.0)
+    def go_to_coordinate(self, x, y, z, far):
+            # first calculate inverse kinmatics here
+            try:
+                joint_vals = self.calc_ik(float(x)*10.0, float(y)*10.0, float(z)*10.0)
+            except:
+                print 'INVERSE KINEMATICS FAILED!!!'
+                ### This sould never happen, arm system should completely abort if this were to happen
+                return None
 
             # print joint vals here to make sure they are valid
             print "The following are the calculated values for the joint values"
@@ -256,7 +256,110 @@ class Melle_Arm(object):
 
             # print "============ Waiting while RVIZ displays plan2..." <- this is the old thing
             # not this sleep is simply to wait for the arm to execute the command before handing back to the CV system
-            rospy.sleep(30.)
+            if far == True:
+                rospy.sleep(30.)
+            else:
+                rospy.sleep(5.)
+
+    def return_to_home(self):
+        joint_vals = self.calc_ik(0.0, 0.0, 0.0) #calc_ik will go to dump position with these values
+
+        # print joint vals here to make sure they are valid
+        print "The following are the calculated values for the joint values"
+        joint_vals_degrees = [0.0]*4
+        joint_vals_degrees[0] = math.degrees(joint_vals[0])
+        joint_vals_degrees[1] = math.degrees(joint_vals[1])
+        joint_vals_degrees[2] = math.degrees(joint_vals[2])
+        joint_vals_degrees[3] = math.degrees(joint_vals[3])
+        print repr(joint_vals_degrees[0]) + ' ' + repr(joint_vals_degrees[1]) + ' ' + repr(joint_vals_degrees[2]) + ' ' + repr(joint_vals_degrees[3])
+        # input_string = raw_input('hit ENTER to continue')
+
+
+        # initialize actual commands to the cpr_mover arm to ready it for new commands
+        rospy.sleep(1)
+        msgCommands = String();
+        msgCommands.data = "Connect";
+        self.commands_publisher_.publish(msgCommands);
+        rospy.sleep(1)
+        msgCommands.data = "Reset";
+        self.commands_publisher_.publish(msgCommands);
+        rospy.sleep(1)
+        msgCommands.data = "Enable";
+        self.commands_publisher_.publish(msgCommands);
+        rospy.sleep(1)
+
+        # This is from the tutorial code for generating the plans and executing them
+        ## Getting Basic Information
+        ## ^^^^^^^^^^^^^^^^^^^^^^^^^
+        ##
+        ## We can get the name of the reference frame for this robot
+        print "============ Reference frame: %s" % self.group.get_planning_frame()
+
+        ## We can also print the name of the end-effector link for this group
+        print "============ Reference frame: %s" % self.group.get_end_effector_link()
+
+        ## We can get a list of all the groups in the robot
+        print "============ Robot Groups:"
+        print self.robot.get_group_names()
+
+        ## Sometimes for debugging it is useful to print the entire state of the
+        ## robot.
+        print "============ Printing robot state"
+        print self.robot.get_current_state()
+        print "============"
+
+        ## Planning to a joint-space goal 
+        ## ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        ##
+        ## Let's set a joint space goal and move towards it. 
+        ## First, we will clear the pose target we had just set. <---- I'm still doing this just to be safe
+
+        self.group.clear_pose_targets()
+
+        ## Then, we will get the current set of joint values for the group
+        group_variable_values = self.group.get_current_joint_values()
+        print "============ Joint values: ", group_variable_values
+
+        ## Now, let's modify one of the joints, plan to the new joint
+        ## space goal and visualize the plan
+        group_variable_values[0] = float(joint_vals[0])
+        group_variable_values[1] = float(joint_vals[1])
+        group_variable_values[2] = float(joint_vals[2])
+        group_variable_values[3] = float(joint_vals[3])
+        self.group.set_joint_value_target(group_variable_values)
+
+        plan2 = self.group.plan()
+
+        # print plan2
+
+        # Actually Execute the command on the arm
+        self.group.go(wait=True)
+
+        # print "============ Waiting while RVIZ displays plan2..." <- this is the old thing
+        # not this sleep is simply to wait for the arm to execute the command before handing back to the CV system
+        rospy.sleep(30.)
+
+
+    # x y z are all in CM's
+    def pick_up_litter(self):
+        feedback = String()
+        feedback = 'in_progress'
+        self.robot_state_publisher.publish(feedback)
+        # end effector is ~3inches + base2ground is 4.65in
+        # soda can is about 2.13 inches across        
+        z_thres = (-4.65+3+0.5)*2.54
+        z = (3.0)*2.54
+        pass_count = 0
+        #run through picking up routine, and then return home
+        while (z > z_thres) and (self.sealed == 'off'):
+            x,y = self.homography(self.po.x,self.po.y)
+            if pass_count == 0:
+                go_to_coordinate(x,y,z,True)
+            else:
+                go_to_coordinate(x,y,z,False)
+            z -= 0.5
+            pass_count += 1
+        return_to_home()
         feedback = 'pickup_done'
         self.robot_state_publisher.publish(feedback)
 
