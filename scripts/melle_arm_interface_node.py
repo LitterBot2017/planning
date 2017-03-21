@@ -47,7 +47,14 @@ import moveit_msgs.msg
 import geometry_msgs.msg
 
 #camera
-from downview_cam.msg import po 
+# from downview_cam.msg import po 
+
+# camera/pressure info
+# float32 x
+# float32 y
+# string is_centered
+# string pickup_state
+from melle_refactored.msg import Arm_msg
 
 import math
 ## END_SUB_TUTORIAL
@@ -94,12 +101,19 @@ class Melle_Arm(object):
 
         #################################
         # TODO: get the litter stated, and also position of the piece of litter from the camera
-        self.camera_subscriber = rospy.Subscriber("down_cam_msg", po, self.down_cam_cb)
-        self.po = po()
+        # self.camera_subscriber = rospy.Subscriber("down_cam_msg", po, self.down_cam_cb)
+        # self.po = po()
 
-        self.pressure_subscriber = rospy.Subscriber("Seal_msg", String, self.seal_cb)
-        self.sealed = String()
-        self.sealed.data = "off"
+        # self.pressure_subscriber = rospy.Subscriber("Seal_msg", String, self.seal_cb)
+        # self.sealed = String()
+        # self.sealed.data = "off"
+        self.cam_and_pressure_subscriber = rospy.Subscriber("Arm_msg", Arm_msg, queue_size = 1)
+        self.cam_and_pressure_data = Arm_msg()
+        self.cam_and_pressure_data.x = 0.0
+        self.cam_and_pressure_data.y = 0.0
+        self.cam_and_pressure_data.is_centered = 'not_centered'
+        self.cam_and_pressure_data.pickup_state = 'off'
+
 
         ################################ Set arm state to be "done"
         feedback = String()
@@ -148,15 +162,17 @@ class Melle_Arm(object):
 
         return joint_vals
 
+    def cam_and_pressure_cb(self,data):
+        self.cam_and_pressure_data = data
 
-    def down_cam_cb(self,data):
-        self.po = data
+    # def down_cam_cb(self,data):
+    #     self.po = data
 
-    def seal_cb(self,data):
-        self.sealed = data
+    # def seal_cb(self,data):
+    #     self.sealed = data
 
     def pick_up_signal(self):
-        if self.po.command == 'centered':
+        if self.po.is_centered == 'centered':
             return True
         else:
             return False
@@ -351,7 +367,7 @@ class Melle_Arm(object):
         z = (3.0)*2.54
         pass_count = 0
         #run through picking up routine, and then return home
-        while (z > z_thres) and (self.sealed == 'off'):
+        while (z > z_thres) and (self.cam_and_pressure_data.sealed == 'off'):
             x,y = self.homography(self.po.x,self.po.y)
             if pass_count == 0:
                 go_to_coordinate(x,y,z,True)
