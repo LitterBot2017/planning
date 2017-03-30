@@ -1,0 +1,14 @@
+0.000192002622251096	0.00308145301657239	-0.114684138090243
+0.00302882040810846	-0.000169892835332421	-0.993148051435149
+2.40497923689312e-07	1.88279634116435e-06	0.0220399991633980
+
+function y = homography_transform(x, v)
+% HOMOGRAPHY_TRANSFORM applies homographic transform to vectors
+%   Y = HOMOGRAPHY_TRANSFORM(X, V) takes a 2xN matrix, each column of which
+%   gives the position of a point in a plane. It returns a 2xN matrix whose
+%   columns are the input vectors transformed according to the homography
+%   V, represented as a 3x3 homogeneous matrix.
+q = v * [x; ones(1, size(x,2))];
+p = q(3,:);
+y = [q(1,:)./p; q(2,:)./p];
+end
