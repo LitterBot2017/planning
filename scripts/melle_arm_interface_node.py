@@ -172,7 +172,7 @@ class Melle_Arm(object):
     #     self.sealed = data
 
     def pick_up_signal(self):
-        if self.po.is_centered == 'centered':
+        if self.cam_and_pressure_data.is_centered == 'centered':
             return True
         else:
             return False
@@ -182,9 +182,13 @@ class Melle_Arm(object):
         #         [-0.00106749217814114, -2.52155668261608e-05, 0.697069869544084], 
         #         [-1.14045687505024e-07, 3.65086924495886e-07, 0.0153621383290117]])
 
-        h_mat = np.array([[5.46746420977118e-06, 0.00186858537929480, -0.770939373319039],
-                          [0.00187846177904567, -6.78829638396309e-06, -0.636755466418008], 
-                          [-3.69398387440614e-07, 2.44271999503352e-07, -0.0137090607660856]])
+        # h_mat = np.array([[5.46746420977118e-06, 0.00186858537929480, -0.770939373319039],
+        #                   [0.00187846177904567, -6.78829638396309e-06, -0.636755466418008], 
+        #                   [-3.69398387440614e-07, 2.44271999503352e-07, -0.0137090607660856]])
+
+        h_mat = np.array([[-0.000109081062020685, -0.00179116587204159, 0.864555067791766], 
+                            [-0.00175609183828732, 0.000101439555606069, 0.502352545883134], 
+                            [-1.76373377005859e-08, -1.42370718069173e-06, 0.0134216271701275]])
 
         point = np.array([[x],[y],[1]])
 
@@ -372,7 +376,7 @@ class Melle_Arm(object):
         pass_count = 0
         #run through picking up routine, and then return home
         while (z > z_thres) and (self.cam_and_pressure_data.sealed == 'off'):
-            x,y = self.homography(self.po.x,self.po.y)
+            x,y = self.homography(self.cam_and_pressure_data.x,self.cam_and_pressure_data.y)
             if pass_count == 0:
                 go_to_coordinate(x,y,z,True)
             else:
