@@ -54,7 +54,7 @@ import geometry_msgs.msg
 # float32 y
 # string is_centered
 # string pickup_state
-from melle_refactored.msg import Arm_msg
+from navigation.msg import Arm_msg
 
 import math
 ## END_SUB_TUTORIAL
@@ -97,7 +97,7 @@ class Melle_Arm(object):
         self.commands_publisher_ = rospy.Publisher("CPRMoverCommands", String, queue_size = 1)
 
         #################################Initialize publisher for signaling in the middle of a grasp
-        self.robot_state_publisher = rospy.Publisher("Melle_Arm_State", String, queue_size = 1)
+        self.robot_state_publisher = rospy.Publisher("arm_state", String, queue_size = 1)
 
         #################################
         # TODO: get the litter stated, and also position of the piece of litter from the camera
@@ -107,7 +107,7 @@ class Melle_Arm(object):
         # self.pressure_subscriber = rospy.Subscriber("Seal_msg", String, self.seal_cb)
         # self.sealed = String()
         # self.sealed.data = "off"
-        self.cam_and_pressure_subscriber = rospy.Subscriber("Arm_msg", Arm_msg, queue_size = 1)
+        self.cam_and_pressure_subscriber = rospy.Subscriber("arm", Arm_msg, queue_size = 1)
         self.cam_and_pressure_data = Arm_msg()
         self.cam_and_pressure_data.x = 0.0
         self.cam_and_pressure_data.y = 0.0
