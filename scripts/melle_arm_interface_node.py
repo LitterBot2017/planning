@@ -54,7 +54,7 @@ import geometry_msgs.msg
 # float32 y
 # string is_centered
 # string pickup_state
-from navigation.msg import Arm_msg
+from navigation.msg import Arm
 
 import math
 ## END_SUB_TUTORIAL
@@ -107,8 +107,8 @@ class Melle_Arm(object):
         # self.pressure_subscriber = rospy.Subscriber("Seal_msg", String, self.seal_cb)
         # self.sealed = String()
         # self.sealed.data = "off"
-        self.cam_and_pressure_subscriber = rospy.Subscriber("arm", Arm_msg, queue_size = 1)
-        self.cam_and_pressure_data = Arm_msg()
+        self.cam_and_pressure_subscriber = rospy.Subscriber("arm", Arm, self.cam_and_pressure_cb)
+        self.cam_and_pressure_data = Arm()
         self.cam_and_pressure_data.x = 0.0
         self.cam_and_pressure_data.y = 0.0
         self.cam_and_pressure_data.is_centered = 'not_centered'
@@ -186,9 +186,13 @@ class Melle_Arm(object):
         #                   [0.00187846177904567, -6.78829638396309e-06, -0.636755466418008], 
         #                   [-3.69398387440614e-07, 2.44271999503352e-07, -0.0137090607660856]])
 
-        h_mat = np.array([[-0.000109081062020685, -0.00179116587204159, 0.864555067791766], 
-                            [-0.00175609183828732, 0.000101439555606069, 0.502352545883134], 
-                            [-1.76373377005859e-08, -1.42370718069173e-06, 0.0134216271701275]])
+        # h_mat = np.array([[-0.000109081062020685, -0.00179116587204159, 0.864555067791766], 
+        #                     [-0.00175609183828732, 0.000101439555606069, 0.502352545883134], 
+        #                     [-1.76373377005859e-08, -1.42370718069173e-06, 0.0134216271701275]])
+
+        h_mat = np.array([[0.000192002622251096, 0.00308145301657239, -0.114684138090243], 
+                            [0.00302882040810846, -0.000169892835332421, -0.993148051435149], 
+                            [2.40497923689312e-07, 1.88279634116435e-06, 0.0220399991633980]])        
 
         point = np.array([[x],[y],[1]])
 
@@ -196,7 +200,7 @@ class Melle_Arm(object):
         real_x = q[0]/q[2]
         real_y = q[1]/q[2]
 
-        return float(real_x), float(real_y)
+        return float(real_x), float(-real_y)
 
     def go_to_coordinate(self, x, y, z, far):
             # first calculate inverse kinmatics here
@@ -227,7 +231,7 @@ class Melle_Arm(object):
             msgCommands.data = "Reset";
             self.commands_publisher_.publish(msgCommands);
             rospy.sleep(1)
-            msgCommands.data = "Enable";
+            msgCommands.data = "Enable";False
             self.commands_publisher_.publish(msgCommands);
             rospy.sleep(1)
 
@@ -281,9 +285,9 @@ class Melle_Arm(object):
             # print "============ Waiting while RVIZ displays plan2..." <- this is the old thing
             # not this sleep is simply to wait for the arm to execute the command before handing back to the CV system
             if far == True:
-                rospy.sleep(30.)
+                rospy.sleep(25.)
             else:
-                rospy.sleep(5.)
+                rospy.sleep(3.)
 
     def return_to_home(self):
         joint_vals = self.calc_ik(0.0, 0.0, 0.0) #calc_ik will go to dump position with these values
@@ -369,21 +373,27 @@ class Melle_Arm(object):
         feedback = String()
         feedback = 'in_progress'
         self.robot_state_publisher.publish(feedback)
+
+        local_cam_x = self.cam_and_pressure_data.x
+        local_cam_y = self.cam_and_pressure_data.y
         # end effector is ~3inches + base2ground is 4.65in
         # soda can is about 2.13 inches across        
         z_thres = (-4.65+3+0.5)*2.54
         z = (3.0)*2.54
         pass_count = 0
         #run through picking up routine, and then return home
-        while (z > z_thres) and (self.cam_and_pressure_data.sealed == 'off'):
-            x,y = self.homography(self.cam_and_pressure_data.x,self.cam_and_pressure_data.y)
+        while (z > z_thres) and ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
+            x,y = self.homography(local_cam_x,local_cam_y)
+            print x
+            print y
+            # raw_input('hit enter to continue')
             if pass_count == 0:
-                go_to_coordinate(x,y,z,True)
+                self.go_to_coordinate(x,y,z,True)
             else:
-                go_to_coordinate(x,y,z,False)
-            z -= 0.5
+                self.go_to_coordinate(x,y,z,False)
+            z -= 1.0
             pass_count += 1
-        return_to_home()
+        self.return_to_home()
         feedback = 'pickup_done'
         self.robot_state_publisher.publish(feedback)
 
