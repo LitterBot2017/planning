@@ -373,6 +373,8 @@ class Melle_Arm(object):
         feedback = String()
         feedback = 'in_progress'
         self.robot_state_publisher.publish(feedback)
+        #wait for settling
+        rospy.sleep(7.0)
 
         local_cam_x = self.cam_and_pressure_data.x
         local_cam_y = self.cam_and_pressure_data.y
@@ -389,8 +391,16 @@ class Melle_Arm(object):
             # raw_input('hit enter to continue')
             if pass_count == 0:
                 self.go_to_coordinate(x,y,z,True)
+                self.go_to_coordinate(x+2.5,y+2.5,z,False)
+                self.go_to_coordinate(x-2.5,y+2.5,z,False)
+                self.go_to_coordinate(x-2.5,y-2.5,z,False)
+                self.go_to_coordinate(x+2.5,y-2.5,z,False)
             else:
                 self.go_to_coordinate(x,y,z,False)
+                self.go_to_coordinate(x+2.5,y+2.5,z,False)
+                self.go_to_coordinate(x-2.5,y+2.5,z,False)
+                self.go_to_coordinate(x-2.5,y-2.5,z,False)
+                self.go_to_coordinate(x+2.5,y-2.5,z,False)
             z -= 1.0
             pass_count += 1
         self.return_to_home()
