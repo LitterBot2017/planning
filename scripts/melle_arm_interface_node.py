@@ -200,7 +200,7 @@ class Melle_Arm(object):
         real_x = q[0]/q[2]
         real_y = q[1]/q[2]
 
-        return float(real_x), float(-real_y)
+        return float(real_x), float(real_y)
 
     def go_to_coordinate(self, x, y, z, far):
             # first calculate inverse kinmatics here
@@ -209,6 +209,7 @@ class Melle_Arm(object):
             except:
                 print 'INVERSE KINEMATICS FAILED!!!'
                 ### This sould never happen, arm system should completely abort if this were to happen
+                exit()
                 return None
 
             # print joint vals here to make sure they are valid
@@ -293,7 +294,7 @@ class Melle_Arm(object):
         joint_vals = self.calc_ik(0.0, 0.0, 0.0) #calc_ik will go to dump position with these values
 
         # print joint vals here to make sure they are valid
-        print "The following are the calculated values for the joint values"
+        print "RETURNING TO HOME!!!: The following are the calculated values for the joint values"
         joint_vals_degrees = [0.0]*4
         joint_vals_degrees[0] = math.degrees(joint_vals[0])
         joint_vals_degrees[1] = math.degrees(joint_vals[1])
@@ -371,40 +372,43 @@ class Melle_Arm(object):
     # x y z are all in CM's
     def pick_up_litter(self):
         feedback = String()
-        feedback = 'in_progress'
+        feedback.data = 'in_progress'
         self.robot_state_publisher.publish(feedback)
         #wait for settling
         rospy.sleep(7.0)
+        x_fudge_factor = 0.0#4.0
 
         local_cam_x = self.cam_and_pressure_data.x
         local_cam_y = self.cam_and_pressure_data.y
         # end effector is ~3inches + base2ground is 4.65in
         # soda can is about 2.13 inches across        
-        z_thres = (-4.65+3+0.5)*2.54
-        z = (3.0)*2.54
+        z_thres = (-4.65+3+0.5)*2.54+(1.5*2.54)
+        z = (3.0)*2.54-2.54*1.5
         pass_count = 0
         #run through picking up routine, and then return home
         while (z > z_thres) and ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
             x,y = self.homography(local_cam_x,local_cam_y)
             print x
             print y
+            x = x*0.875
+            y = y*0.875
             # raw_input('hit enter to continue')
             if pass_count == 0:
                 self.go_to_coordinate(x,y,z,True)
-                self.go_to_coordinate(x+2.5,y+2.5,z,False)
-                self.go_to_coordinate(x-2.5,y+2.5,z,False)
-                self.go_to_coordinate(x-2.5,y-2.5,z,False)
-                self.go_to_coordinate(x+2.5,y-2.5,z,False)
+                # self.go_to_coordinate(x+1.5,y+1.5,z,False)
+                # self.go_to_coordinate(x-1.5,y+1.5,z,False)
+                # self.go_to_coordinate(x-1.5,y-1.5,z,False)
+                # self.go_to_coordinate(x+1.5,y-1.5,z,False)
             else:
                 self.go_to_coordinate(x,y,z,False)
-                self.go_to_coordinate(x+2.5,y+2.5,z,False)
-                self.go_to_coordinate(x-2.5,y+2.5,z,False)
-                self.go_to_coordinate(x-2.5,y-2.5,z,False)
-                self.go_to_coordinate(x+2.5,y-2.5,z,False)
+                self.go_to_coordinate(x+1.5,y+1.5,z,False)
+                self.go_to_coordinate(x-1.5,y+1.5,z,False)
+                self.go_to_coordinate(x-1.5,y-1.5,z,False)
+                self.go_to_coordinate(x+1.5,y-1.5,z,False)
             z -= 1.0
             pass_count += 1
         self.return_to_home()
-        feedback = 'pickup_done'
+        feedback.data = 'pickup_done'
         self.robot_state_publisher.publish(feedback)
 
 
