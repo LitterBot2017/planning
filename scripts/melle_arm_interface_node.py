@@ -45,7 +45,8 @@ import rospy
 import moveit_commander
 import moveit_msgs.msg
 import geometry_msgs.msg
-import sensor_msgs.msg
+# import sensor_msgs.msg
+from sensor_msgs.msg import JointState
 #camera
 # from downview_cam.msg import po 
 
@@ -116,7 +117,10 @@ class Melle_Arm(object):
 
         #to check joint_states to make sure the arm has stopped executing
         self.joint_subscriber = rospy.Subscriber("joint_states", JointState, self.joint_states_cb)
-        self.joint_states = [[0]*4]*5
+        # self.joint_states = [[0]*4]*5
+        self.joint_states = [JointState()]*5
+        # import IPython
+        # IPython.embed()
 
 
         ################################ Set arm state to be "done"
@@ -183,8 +187,10 @@ class Melle_Arm(object):
     def joints_stable(self):
         stable = True
         for idx in range(4):
-            test_stable = joint_states[idx] == joint_states[idx+1]
-            stable = stable && test_stable
+            test_stable = self.joint_states[idx].position == self.joint_states[idx+1].position
+            stable = stable & test_stable
+            rospy.sleep(0.1)
+        print "joints stable?:" + repr(stable)
         return stable
 
     def pick_up_signal(self):
@@ -202,13 +208,13 @@ class Melle_Arm(object):
         #                   [0.00187846177904567, -6.78829638396309e-06, -0.636755466418008], 
         #                   [-3.69398387440614e-07, 2.44271999503352e-07, -0.0137090607660856]])
 
-        # h_mat = np.array([[-0.000109081062020685, -0.00179116587204159, 0.864555067791766], 
-        #                     [-0.00175609183828732, 0.000101439555606069, 0.502352545883134], 
-        #                     [-1.76373377005859e-08, -1.42370718069173e-06, 0.0134216271701275]])
+        h_mat = np.array([[-0.000109081062020685, -0.00179116587204159, 0.864555067791766], 
+                            [-0.00175609183828732, 0.000101439555606069, 0.502352545883134], 
+                            [-1.76373377005859e-08, -1.42370718069173e-06, 0.0134216271701275]])
 
-        h_mat = np.array([[0.000192002622251096, 0.00308145301657239, -0.114684138090243], 
-                            [0.00302882040810846, -0.000169892835332421, -0.993148051435149], 
-                            [2.40497923689312e-07, 1.88279634116435e-06, 0.0220399991633980]])        
+        # h_mat = np.array([[0.000192002622251096, 0.00308145301657239, -0.114684138090243], 
+        #                     [0.00302882040810846, -0.000169892835332421, -0.993148051435149], 
+        #                     [2.40497923689312e-07, 1.88279634116435e-06, 0.0220399991633980]])        
 
         point = np.array([[x],[y],[1]])
 
@@ -303,8 +309,14 @@ class Melle_Arm(object):
             # not this sleep is simply to wait for the arm to execute the command before handing back to the CV system
             if far == True:
                 rospy.sleep(25.)
+                while self.joints_stable() == False:
+                    rospy.sleep(0.1)
+                rospy.sleep(1.0)
             else:
                 rospy.sleep(3.)
+                while self.joints_stable() == False:
+                    rospy.sleep(0.1)
+                rospy.sleep(1.0)
 
     def return_to_home(self):
         joint_vals = self.calc_ik(0.0, 0.0, 0.0) #calc_ik will go to dump position with these values
@@ -383,6 +395,10 @@ class Melle_Arm(object):
         # print "============ Waiting while RVIZ displays plan2..." <- this is the old thing
         # not this sleep is simply to wait for the arm to execute the command before handing back to the CV system
         rospy.sleep(30.)
+        while self.joints_stable() == False:
+            rospy.sleep(0.1)
+            print self.joint_states
+        rospy.sleep(1.0)
 
 
     # x y z are all in CM's
@@ -398,35 +414,88 @@ class Melle_Arm(object):
         local_cam_y = self.cam_and_pressure_data.y
         # end effector is ~3inches + base2ground is 4.65in
         # soda can is about 2.13 inches across        
-        z_thres = (-4.65+3+0.5)*2.54+(1.5*2.54)
-        z = (3.0)*2.54-2.54*1.5
+        # note closest x is about 24 cm to be safe
+        # z_thres = (-4.65+3+0.5)*2.54+(1.5*2.54)
+        # z = (3.0)*2.54-2.54*1.5
+        z = 9 #starting height
+        z_thres = 5#lowest height
         pass_count = 0
         #run through picking up routine, and then return home
         while (z > z_thres) and ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
             x,y = self.homography(local_cam_x,local_cam_y)
             print x
             print y
-            x = x*0.875
-            y = y*0.875
+            target_x = x*0.875
+            target_y = y*0.875
+            
             # raw_input('hit enter to continue')
+            sweep_factor = 5
             if pass_count == 0:
+                x,y = self.correct_bounds(target_x,target_y)
                 self.go_to_coordinate(x,y,z,True)
-                # self.go_to_coordinate(x+1.5,y+1.5,z,False)
-                # self.go_to_coordinate(x-1.5,y+1.5,z,False)
-                # self.go_to_coordinate(x-1.5,y-1.5,z,False)
-                # self.go_to_coordinate(x+1.5,y-1.5,z,False)
-            else:
+                if not ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
+                    break
+                x,y = self.correct_bounds(target_x+sweep_factor,target_y+sweep_factor)
                 self.go_to_coordinate(x,y,z,False)
-                self.go_to_coordinate(x+1.5,y+1.5,z,False)
-                self.go_to_coordinate(x-1.5,y+1.5,z,False)
-                self.go_to_coordinate(x-1.5,y-1.5,z,False)
-                self.go_to_coordinate(x+1.5,y-1.5,z,False)
+                if not ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
+                    break
+                x,y = self.correct_bounds(target_x+sweep_factor,target_y-sweep_factor)
+                self.go_to_coordinate(x,y,z,False)
+                if not ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
+                    break
+                x,y = self.correct_bounds(target_x-sweep_factor,target_y+sweep_factor)
+                self.go_to_coordinate(x,y,z,False)
+                if not ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
+                    break
+                x,y = self.correct_bounds(target_x-sweep_factor,target_y-sweep_factor)
+                self.go_to_coordinate(x,y,z,False)
+                if not ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
+                    break
+            else:
+                x,y = self.correct_bounds(target_x,target_y)
+                self.go_to_coordinate(x,y,z,False)
+                if not ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
+                    break
+                x,y = self.correct_bounds(target_x+sweep_factor,target_y+sweep_factor)
+                self.go_to_coordinate(x,y,z,False)
+                if not ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
+                    break
+                x,y = self.correct_bounds(target_x+sweep_factor,target_y-sweep_factor)
+                self.go_to_coordinate(x,y,z,False)
+                if not ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
+                    break
+                x,y = self.correct_bounds(target_x-sweep_factor,target_y+sweep_factor)
+                self.go_to_coordinate(x,y,z,False)
+                if not ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
+                    break
+                x,y = self.correct_bounds(target_x-sweep_factor,target_y-sweep_factor)
+                self.go_to_coordinate(x,y,z,False)
+                if not ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
+                    break
             z -= 1.0
             pass_count += 1
         self.return_to_home()
         feedback.data = 'pickup_done'
-        self.robot_state_publisher.publish(feedback)
+        for x in xrange(1,10):
+            self.robot_state_publisher.publish(feedback)
+            rospy.sleep(0.1)
 
+    def correct_bounds(self, x, y):
+        sign_y = 0
+        if y >= 0:
+            sign_y = 1
+        else:
+            sign_y = -1
+
+        if x < 24:
+            x = 24
+
+        mag = math.sqrt(math.pow(x,2)+math.pow(y,2))
+        if mag > 35:
+            y = math.sqrt(pow(35,2)-pow(x,2))
+            y = y*sign_y
+
+        return x,y
 
 if __name__=='__main__':
     rospy.sleep(1)

@@ -17,7 +17,7 @@
     <arg name="debug" value="$(arg debug)"/>
   </include>
 
-<!--   <node name="melle_arm_interface_node" pkg="planning" type="melle_arm_interface_node.py" respawn="false" output="screen">
-  </node>
+  <!--   <node name="melle_arm_interface_node" pkg="planning" type="melle_arm_interface_node.py" respawn="false" output="screen">
+    </node>
  -->
 </launch>
