@@ -45,7 +45,7 @@ import rospy
 import moveit_commander
 import moveit_msgs.msg
 import geometry_msgs.msg
-
+import sensor_msgs.msg
 #camera
 # from downview_cam.msg import po 
 
@@ -114,6 +114,10 @@ class Melle_Arm(object):
         self.cam_and_pressure_data.is_centered = 'not_centered'
         self.cam_and_pressure_data.pickup_state = 'off'
 
+        #to check joint_states to make sure the arm has stopped executing
+        self.joint_subscriber = rospy.Subscriber("joint_states", JointState, self.joint_states_cb)
+        self.joint_states = [[0]*4]*5
+
 
         ################################ Set arm state to be "done"
         feedback = String()
@@ -170,6 +174,18 @@ class Melle_Arm(object):
 
     # def seal_cb(self,data):
     #     self.sealed = data
+
+    def joint_states_cb(self,data):
+        for idx in range(0,4):
+            self.joint_states[idx] = self.joint_states[idx+1]
+        self.joint_states[4] = data
+
+    def joints_stable(self):
+        stable = True
+        for idx in range(4):
+            test_stable = joint_states[idx] == joint_states[idx+1]
+            stable = stable && test_stable
+        return stable
 
     def pick_up_signal(self):
         if self.cam_and_pressure_data.is_centered == 'centered':
