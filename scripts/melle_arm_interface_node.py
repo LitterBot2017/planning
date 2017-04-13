@@ -308,12 +308,12 @@ class Melle_Arm(object):
             # print "============ Waiting while RVIZ displays plan2..." <- this is the old thing
             # not this sleep is simply to wait for the arm to execute the command before handing back to the CV system
             if far == True:
-                rospy.sleep(25.)
+                rospy.sleep(5.)
                 while self.joints_stable() == False:
                     rospy.sleep(0.1)
                 rospy.sleep(1.0)
             else:
-                rospy.sleep(3.)
+                rospy.sleep(1.)
                 while self.joints_stable() == False:
                     rospy.sleep(0.1)
                 rospy.sleep(1.0)
@@ -394,7 +394,7 @@ class Melle_Arm(object):
 
         # print "============ Waiting while RVIZ displays plan2..." <- this is the old thing
         # not this sleep is simply to wait for the arm to execute the command before handing back to the CV system
-        rospy.sleep(30.)
+        rospy.sleep(5.)
         while self.joints_stable() == False:
             rospy.sleep(0.1)
             print self.joint_states
@@ -407,7 +407,7 @@ class Melle_Arm(object):
         feedback.data = 'in_progress'
         self.robot_state_publisher.publish(feedback)
         #wait for settling
-        rospy.sleep(7.0)
+        rospy.sleep(5.0)
         x_fudge_factor = 0.0#4.0
 
         local_cam_x = self.cam_and_pressure_data.x
