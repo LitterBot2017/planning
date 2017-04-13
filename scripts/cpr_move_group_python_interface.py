@@ -74,7 +74,7 @@ def calc_ik(x,y,z):
   l_4 = 45.0
 
   joint_vals = [0.0] * 4
-  # joint_vals[3] = math.radians(-90.0)
+  joint_vals[3] = math.radians(-90.0)
 
   if (x == 0.0) and (y == 0.0) and (z == 0.0):
     return joint_vals
