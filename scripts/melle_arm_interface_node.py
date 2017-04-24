@@ -308,7 +308,7 @@ class Melle_Arm(object):
             # print "============ Waiting while RVIZ displays plan2..." <- this is the old thing
             # not this sleep is simply to wait for the arm to execute the command before handing back to the CV system
             if far == True:
-                rospy.sleep(5.)
+                rospy.sleep(2.)
                 while self.joints_stable() == False:
                     rospy.sleep(0.1)
                 rospy.sleep(1.0)
@@ -394,7 +394,7 @@ class Melle_Arm(object):
 
         # print "============ Waiting while RVIZ displays plan2..." <- this is the old thing
         # not this sleep is simply to wait for the arm to execute the command before handing back to the CV system
-        rospy.sleep(5.)
+        rospy.sleep(2.)
         while self.joints_stable() == False:
             rospy.sleep(0.1)
             print self.joint_states
@@ -417,64 +417,83 @@ class Melle_Arm(object):
         # note closest x is about 24 cm to be safe
         # z_thres = (-4.65+3+0.5)*2.54+(1.5*2.54)
         # z = (3.0)*2.54-2.54*1.5
-        z = 9 #starting height
-        z_thres = 5#lowest height
         pass_count = 0
         #run through picking up routine, and then return home
-        while (z > z_thres) and ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
+        for idx in range(5):
+            print idx
+            z = 9 #starting height
+            z_thres = 5#lowest height
+
             x,y = self.homography(local_cam_x,local_cam_y)
             print x
             print y
             target_x = x*0.875
             target_y = y*0.875
-            
-            # raw_input('hit enter to continue')
+
             sweep_factor = 5
             if pass_count == 0:
                 x,y = self.correct_bounds(target_x,target_y)
-                self.go_to_coordinate(x,y,z,True)
-                if not ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
-                    break
+            if pass_count == 1:
                 x,y = self.correct_bounds(target_x+sweep_factor,target_y+sweep_factor)
-                self.go_to_coordinate(x,y,z,False)
-                if not ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
-                    break
+            if pass_count == 2:
                 x,y = self.correct_bounds(target_x+sweep_factor,target_y-sweep_factor)
-                self.go_to_coordinate(x,y,z,False)
-                if not ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
-                    break
+            if pass_count == 3:
                 x,y = self.correct_bounds(target_x-sweep_factor,target_y+sweep_factor)
-                self.go_to_coordinate(x,y,z,False)
-                if not ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
-                    break
+            if pass_count == 4:
                 x,y = self.correct_bounds(target_x-sweep_factor,target_y-sweep_factor)
-                self.go_to_coordinate(x,y,z,False)
-                if not ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
-                    break
-            else:
-                x,y = self.correct_bounds(target_x,target_y)
-                self.go_to_coordinate(x,y,z,False)
-                if not ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
-                    break
-                x,y = self.correct_bounds(target_x+sweep_factor,target_y+sweep_factor)
-                self.go_to_coordinate(x,y,z,False)
-                if not ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
-                    break
-                x,y = self.correct_bounds(target_x+sweep_factor,target_y-sweep_factor)
-                self.go_to_coordinate(x,y,z,False)
-                if not ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
-                    break
-                x,y = self.correct_bounds(target_x-sweep_factor,target_y+sweep_factor)
-                self.go_to_coordinate(x,y,z,False)
-                if not ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
-                    break
-                x,y = self.correct_bounds(target_x-sweep_factor,target_y-sweep_factor)
-                self.go_to_coordinate(x,y,z,False)
-                if not ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
-                    break
-            z -= 1.0
+
+            while (z > z_thres) and ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
+                # raw_input('hit enter to continue')
+                if pass_count == 0:
+                    # x,y = self.correct_bounds(target_x,target_y)
+                    self.go_to_coordinate(x,y,z,True)
+                    if not ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
+                        break
+                    # x,y = self.correct_bounds(target_x+sweep_factor,target_y+sweep_factor)
+                    # self.go_to_coordinate(x,y,z,False)
+                    # if not ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
+                    #     break
+                    # x,y = self.correct_bounds(target_x+sweep_factor,target_y-sweep_factor)
+                    # self.go_to_coordinate(x,y,z,False)
+                    # if not ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
+                    #     break
+                    # x,y = self.correct_bounds(target_x-sweep_factor,target_y+sweep_factor)
+                    # self.go_to_coordinate(x,y,z,False)
+                    # if not ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
+                    #     break
+                    # x,y = self.correct_bounds(target_x-sweep_factor,target_y-sweep_factor)
+                    # self.go_to_coordinate(x,y,z,False)
+                    # if not ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
+                    #     break
+                else:
+                    # x,y = self.correct_bounds(target_x,target_y)
+                    self.go_to_coordinate(x,y,z,False)
+                    if not ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
+                        break
+                    # x,y = self.correct_bounds(target_x+sweep_factor,target_y+sweep_factor)
+                    # self.go_to_coordinate(x,y,z,False)
+                    # if not ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
+                    #     break
+                    # x,y = self.correct_bounds(target_x+sweep_factor,target_y-sweep_factor)
+                    # self.go_to_coordinate(x,y,z,False)
+                    # if not ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
+                    #     break
+                    # x,y = self.correct_bounds(target_x-sweep_factor,target_y+sweep_factor)
+                    # self.go_to_coordinate(x,y,z,False)
+                    # if not ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
+                    #     break
+                    # x,y = self.correct_bounds(target_x-sweep_factor,target_y-sweep_factor)
+                    # self.go_to_coordinate(x,y,z,False)
+                    # if not ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
+                    #     break
+                z -= 1.0
+            if not ((self.cam_and_pressure_data.pickup_state == 'off') or (self.cam_and_pressure_data.pickup_state == '')):
+                break
             pass_count += 1
+
+
         self.return_to_home()
+
         feedback.data = 'pickup_done'
         for x in xrange(1,10):
             self.robot_state_publisher.publish(feedback)
@@ -489,6 +508,8 @@ class Melle_Arm(object):
 
         if x < 24:
             x = 24
+        if x > 35:
+            x = 35
 
         mag = math.sqrt(math.pow(x,2)+math.pow(y,2))
         if mag > 35:
@@ -507,5 +528,5 @@ if __name__=='__main__':
         if Arm.pick_up_signal() is True:
             Arm.pick_up_litter()
         else:
-            print 'no cans'
+            # print 'no cans'
             rate.sleep()
